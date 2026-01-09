@@ -3,8 +3,7 @@ import sys
 import os
 import glob
 from .core import convert
-from .utils import read_jsonl, scan_session_info
-from .constants import ROLE_ALIASES
+from .utils import read_jsonl, scan_session_info, normalize_role
 
 DEFAULT_SESSIONS_DIR = os.path.expanduser("~/.codex/sessions")
 
@@ -88,7 +87,8 @@ def main() -> None:
             sys.exit(1)
 
         # Check if this is a Codex sessions directory with year/month/day structure
-        if is_codex_sessions_dir(input_path):
+        is_date_tree = is_codex_sessions_dir(input_path)
+        if is_date_tree:
             target_date, files = find_sessions_in_date_tree(input_path, args.date)
             if not files:
                 if args.date:
@@ -105,13 +105,8 @@ def main() -> None:
             target_date = args.date
 
         # Scan sessions for metadata
-        sessions = []
-        for f in files:
-            info = scan_session_info(f)
-            if info["timestamp"]:
-                sessions.append(info)
-
-        # Sort by timestamp desc
+        sessions = [scan_session_info(f) for f in files]
+        sessions = [s for s in sessions if s["timestamp"]]
         sessions.sort(key=lambda x: x["timestamp"] or "", reverse=True)
 
         if not sessions:
@@ -119,32 +114,29 @@ def main() -> None:
             sys.exit(1)
 
         # For flat directories without date tree, filter by date if specified
-        if target_date and not is_codex_sessions_dir(input_path):
-            filtered_sessions = [s for s in sessions if s["date_str"] == target_date]
-            if not filtered_sessions:
+        if target_date and not is_date_tree:
+            sessions = [s for s in sessions if s["date_str"] == target_date]
+            if not sessions:
                 sys.stderr.write(f"No sessions found for date {target_date}.\n")
                 sys.exit(1)
-        else:
-            filtered_sessions = sessions
         
         # Interactive selection
         if target_date:
-            sys.stderr.write(f"Found {len(filtered_sessions)} session(s) for {target_date}:\n")
+            sys.stderr.write(f"Found {len(sessions)} session(s) for {target_date}:\n")
         else:
-            sys.stderr.write(f"Found {len(filtered_sessions)} session(s):\n")
-        for idx, s in enumerate(filtered_sessions, 1):
+            sys.stderr.write(f"Found {len(sessions)} session(s):\n")
+        for idx, s in enumerate(sessions, 1):
             ts = s["timestamp"]
             prompt = s["first_prompt"] or "(No user prompt found)"
             preview = (prompt[:50] + "...") if len(prompt) > 50 else prompt
-            # Print to stderr to keep stdout clean for piping if needed (though selection implies interactivity)
             sys.stderr.write(f"[{idx}] {ts} - {preview}\n")
-        
+
         sys.stderr.write("\nSelect a session number: ")
         try:
             choice = input()
             choice_idx = int(choice) - 1
-            if 0 <= choice_idx < len(filtered_sessions):
-                target_file = filtered_sessions[choice_idx]["path"]
+            if 0 <= choice_idx < len(sessions):
+                target_file = sessions[choice_idx]["path"]
             else:
                 sys.stderr.write("Invalid selection.\n")
                 sys.exit(1)
@@ -155,15 +147,7 @@ def main() -> None:
     # Proceed with conversion
     only_roles = None
     if args.only:
-        norm = []
-        for r in args.only:
-            r = r.strip().lower()
-            r = ROLE_ALIASES.get(r, r)
-            if r == "event":
-                norm.append("event")
-            else:
-                norm.append(r)
-        only_roles = norm
+        only_roles = [normalize_role(r) or r.strip().lower() for r in args.only]
 
     md = convert(read_jsonl(target_file), args.include_raw, only_roles, args.collapse_tools)
 

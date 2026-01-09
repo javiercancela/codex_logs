@@ -33,18 +33,20 @@ cli.py → core.py → extractors.py + renderers.py
         utils.py + constants.py
 ```
 
-- **cli.py**: Entry point. Handles argument parsing, directory scanning for session files, date filtering, and interactive session selection
-- **core.py**: Main `convert()` function that orchestrates the conversion pipeline
+- **cli.py**: Entry point. Handles argument parsing, date tree navigation (`<year>/<month>/<day>` structure), and interactive session selection
+- **core.py**: Main `convert()` function that orchestrates the conversion pipeline. Filters empty entries and applies role filtering
 - **extractors.py**: Functions to extract structured data (role, text, tool calls, tool results) from various JSONL line formats
 - **renderers.py**: Functions to render extracted data as Markdown (headers, tool call blocks, tool results)
-- **utils.py**: Shared utilities for JSONL reading, timestamp formatting, role normalization, and session scanning
+- **utils.py**: Shared utilities for JSONL reading, timestamp formatting, role normalization, and session metadata scanning
 - **constants.py**: Role alias mappings (e.g., "human" → "user", "function" → "tool")
 
 ## Key Design Patterns
 
+- **Date tree navigation**: Automatically detects and navigates the `~/.codex/sessions/<year>/<month>/<day>` folder structure, defaulting to the most recent date
 - **Flexible JSONL parsing**: The extractors handle multiple log format variations (nested messages, different key names like `content`/`text`/`delta`, various tool call structures)
 - **Role normalization**: All roles are normalized through `ROLE_ALIASES` in constants.py
 - **Timestamp handling**: Supports ISO8601 strings, epoch seconds/milliseconds, and `{seconds, nanos}` objects
+- **Empty entry filtering**: Entries with no text, tool calls, or tool results are skipped to avoid empty headers
 
 ## Dependencies
 

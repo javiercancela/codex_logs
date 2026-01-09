@@ -38,18 +38,23 @@ def convert(
 
         role = normalize_role(role) or "event"
 
+        # Skip elements with no content (no text, no tool calls, no tool results)
+        has_text = bool(text and text.strip())
+        if not (has_text or tool_calls or tool_result is not None):
+            continue
+
         # Filter by role
         if only_roles:
-            if role not in only_roles:
-                # Keep tool blocks only if "tool" is included
-                if role.startswith("event:") and "event" not in only_roles:
-                    continue
+            is_event = role.startswith("event:")
+            if is_event and "event" not in only_roles:
+                continue
+            if not is_event and role not in only_roles:
                 continue
 
         # Render main block
         out_lines.append(render_block_header(role, ts))
 
-        if text and text.strip():
+        if has_text:
             out_lines.append(text.rstrip())
             out_lines.append("")  # blank line
 

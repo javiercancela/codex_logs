@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-codex_jsonl_to_md.py entry point.
+Entry point.
 Wrapper around codex2md.cli
 """
 
