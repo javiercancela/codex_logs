@@ -2,4 +2,4 @@
 App to convert OpenAI Codex logs to Markdown.
 Vibe coded with Codex, Gemini, and Claude Code.
 
-See [CLAUDE.md] for details.
+See [the CLAUDE.md file](CLAUDE.md) for details.
