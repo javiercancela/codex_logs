@@ -85,9 +85,10 @@ def scan_session_info(path: str, max_lines: int = 50) -> Dict[str, Any]:
     Quickly scan a JSONL file to extract:
     - timestamp (from the first valid line with a timestamp)
     - first_prompt (the first user message found)
+    - cwd (working directory from payload)
     """
-    info = {"path": path, "timestamp": None, "first_prompt": None, "date_str": None}
-    
+    info = {"path": path, "timestamp": None, "first_prompt": None, "date_str": None, "cwd": None}
+
     try:
         with open(path, "r", encoding="utf-8") as f:
             for i, line in enumerate(f):
@@ -98,17 +99,23 @@ def scan_session_info(path: str, max_lines: int = 50) -> Dict[str, Any]:
                     continue
                 try:
                     data = json.loads(line)
-                    
+
                     # specific extraction logic imports
                     # We avoid circular imports by simple dict lookups here or assume logic similar to extractors
-                    
+
+                    # Capture cwd from payload
+                    if not info["cwd"]:
+                        payload = data.get("payload", {})
+                        if isinstance(payload, dict) and payload.get("cwd"):
+                            info["cwd"] = payload["cwd"]
+
                     # Capture first timestamp
                     if not info["timestamp"]:
                         # try top level
                         ts = data.get("timestamp") or data.get("created_at")
                         if not ts and "payload" in data:
                             ts = data["payload"].get("timestamp")
-                        
+
                         if ts:
                             info["timestamp"] = ts
                             # Try to make a sortable date string YYYYMMDD

@@ -126,10 +126,13 @@ def main() -> None:
         else:
             sys.stderr.write(f"Found {len(sessions)} session(s):\n")
         for idx, s in enumerate(sessions, 1):
-            ts = s["timestamp"]
+            cwd = s["cwd"] or "(unknown)"
+            date = s["date_str"]
+            if date and len(date) == 8:
+                date = f"{date[:4]}-{date[4:6]}-{date[6:8]}"
             prompt = s["first_prompt"] or "(No user prompt found)"
             preview = (prompt[:50] + "...") if len(prompt) > 50 else prompt
-            sys.stderr.write(f"[{idx}] {ts} - {preview}\n")
+            sys.stderr.write(f"[{idx}] {cwd} ({date}) - {preview}\n")
 
         sys.stderr.write("\nSelect a session number: ")
         try:
